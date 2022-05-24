@@ -141,3 +141,12 @@ export const get = async (req, res) => {
     getAllUsers(req, res);
   }
 };
+
+export const getUserIdByToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+    return decoded.user_id;
+  } catch (error) {
+    return undefined;
+  }
+};
