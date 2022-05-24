@@ -2,6 +2,16 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+export const getUserByToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+    const user = await User.findOne({ _id: decoded.user_id });
+    return user;
+  } catch (error) {
+    return undefined;
+  }
+};
+
 export const create = async (req, res) => {
   try {
     const { username, password, email, birthdate, bio } = req.body;
@@ -62,9 +72,7 @@ const loginCredentials = async (req, res) => {
 
 const loginToken = async (req, res) => {
   try {
-    const { token } = req.body;
-    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await User.findOne({ _id: decoded.user_id });
+    const user = await getUserByToken(req.query.token);
     if (user) {
       res.json({});
     } else {

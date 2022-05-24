@@ -1,61 +1,70 @@
 import UserAction from "../models/userAction.model.js";
+import { getUserByToken } from "./user.controller.js";
 
 const createAction = async (req, res, type) => {
-  const { user_id } = req.headers;
-  if (type === "comment") {
-    try {
-      const { post_id, comment } = req.body;
-      if (user_id && post_id && comment) {
-        const newAction = new UserAction({
-          user_id,
-          post_id,
-          comment,
-          type,
-        });
-        await newAction.save();
-        res.status(200).json({});
-      } else {
-        res.status(400).json({
-          message: "All fields are required",
-        });
+  const { token } = req.headers;
+  const user = await getUserByToken(token);
+  if (user) {
+    const user_id = user._id;
+    if (type === "comment") {
+      try {
+        const { post_id, comment } = req.body;
+        if (post_id && comment) {
+          const newAction = new UserAction({
+            user_id,
+            post_id,
+            comment,
+            type,
+          });
+          await newAction.save();
+          res.status(200).json({});
+        } else {
+          res.status(400).json({
+            message: "All fields are required",
+          });
+        }
+      } catch (error) {
+        res.json({ error, message: "error" });
       }
-    } catch (error) {
-      res.json({ error, message: "error" });
+    } else {
+      try {
+        const { post_id } = req.body;
+        if (post_id) {
+          await UserAction.create({
+            type,
+            user_id,
+            post_id,
+          });
+          res.json({});
+        } else {
+          res.json({ error: "Missing fields" });
+        }
+      } catch (error) {
+        res.json({ error, message: "error" });
+      }
     }
   } else {
-    try {
-      const {post_id } = req.body;
-      if (user_id && post_id) {
-        await UserAction.create({
-          type,
-          user_id,
-          post_id,
-        });
-        res.json({});
-      } else {
-        res.json({ error: "Missing fields" });
-      }
-    } catch (error) {
-      res.json({ error, message: "error" });
-    }
+    res.json({ error: "User not found" });
   }
 };
 
 const getAction = async (id, type) => {
   try {
     if (id) {
-      const posts = await User.aggregate([
+      const posts = await UserAction.aggregate([
         { $match: { user_id: id, type } },
         {
           $project: {
-            $toObjectId: post_id,
+            post_id: {
+              $toObjectId: "$post_id",
+            },
           },
         },
         {
           $lookup: {
             from: "posts",
-            localField: "_id",
-            foreignField: "post_id",
+            localField: "post_id",
+            foreignField: "_id",
             as: "posts",
           },
         },
@@ -141,6 +150,7 @@ export const getSavedPosts = async (req, res) => {
 };
 
 export const getLikedPosts = async (req, res) => {
+  console.log("getLikedPosts");
   const { user_id } = req.query;
   const posts = await getAction(user_id, "like");
   if (posts.error) {

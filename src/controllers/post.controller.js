@@ -1,5 +1,5 @@
-import Post from "../models/post.model";
-import UserActionController from "../controllers/userAction.controller";
+import Post from "../models/post.model.js";
+import * as UserActionController from "../controllers/userAction.controller.js";
 
 export const create = async (req, res) => {
   try {
