@@ -11,6 +11,8 @@
         "sourceType": "module"
     },
     "rules": {
-      "import/extensions": ["error", "ignorePackages"]
+      "quotes": [[2, "backtick", "avoid-escape"]],
+      "import/extensions": ["error", "ignorePackages"],
+      "linebreak-style": ["error", "windows"]
     }
 }

@@ -19,8 +19,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // Routes
-app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/', indexRouter);
+
 
 // Connect database
 connect();
