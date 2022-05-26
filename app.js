@@ -9,6 +9,7 @@ import { connect, disconnect } from "./src/configs/db.config.js";
 import indexRouter from "./src/routes/index.routes.js";
 import usersRouter from "./src/routes/users.routes.js";
 import postsRouter from "./src/routes/posts.routes.js";
+import followRouter from "./src/routes/follow.routes.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(cookieParser());
 // Routes
 app.use("/users", usersRouter);
 app.use("/posts", postsRouter);
+app.use("/follows", followRouter);
 app.use("/", indexRouter);
 
 // Connect database
