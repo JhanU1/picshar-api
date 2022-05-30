@@ -1,4 +1,10 @@
 import User from "../models/user.model.js";
+import { getAmountAction } from "./userAction.controller.js";
+import { getAmountPosts } from "./post.controller.js";
+import {
+  getAmountFollowersByUserId,
+  getAmountFolloweesByUserId,
+} from "./follow.controller.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -6,6 +12,15 @@ export const getUserByToken = async (token) => {
   try {
     const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
     const user = await User.findOne({ _id: decoded.user_id });
+    return user;
+  } catch (error) {
+    return undefined;
+  }
+};
+
+export const getUserById = async (user_id) => {
+  try {
+    const user = await User.findOne({ _id: user_id });
     return user;
   } catch (error) {
     return undefined;
@@ -97,10 +112,10 @@ const getUser = async (req, res) => {
     const user = await User.findOne({ _id: user_id });
     if (user) {
       const { username, email, bio } = user;
-      // TODO: calculate liked_count, posts_count, followers_count, followed_count
-      let [liked_count, posts_count, followers_count, followed_count] = [
-        0, 0, 0, 0,
-      ];
+      const liked_count = await getAmountAction(user_id, "like");
+      const posts_count = await getAmountPosts(user_id);
+      const followers_count = await getAmountFollowersByUserId(user_id);
+      const followed_count = await getAmountFolloweesByUserId(user_id);
       res.json({
         username,
         email,

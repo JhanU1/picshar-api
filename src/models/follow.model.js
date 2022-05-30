@@ -7,7 +7,7 @@ const { Schema, model } = mongoose;
 const followSchema = new Schema({
   follower_id: { type: String, required: true },
   followee_id: { type: String, required: true },
-  request: { type: Boolean, required: true , default: true},
+  request: { type: Boolean , default: true},
 });
 
 export default model("Follow", followSchema);

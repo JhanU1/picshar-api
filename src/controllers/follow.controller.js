@@ -14,6 +14,57 @@ export const isFollowing = async (followee_id, follower_id) => {
   return !!follow;
 };
 
+export const followeesByUserId = async (follower_id, token) => {
+  try {
+    const user_id = await getUserIdByToken(token);
+
+    if (follower_id && user_id) {
+      const isFollow =await  isFollowing(follower_id, user_id);
+      if (isFollow || follower_id === user_id) {
+        const users = await Follow.aggregate([
+          { $match: { follower_id, request: false } },
+          {
+            $project: {
+              followee_id: {
+                $toObjectId: "$followee_id",
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "followee_id",
+              foreignField: "_id",
+              as: "user",
+            },
+          },
+          {
+            $unwind: "$user",
+          },
+        ]).exec();
+        const r = users.map((val) => {
+          const { _id, username, email, bio } = val.user;
+          return {
+            _id,
+            username,
+            email,
+            bio,
+          };
+        });
+        return r;
+      } else {
+        return {
+          error: "You are not following this user",
+        };
+      }
+    } else {
+      return { error: "Missing fields" };
+    }
+  } catch (error) {
+    return { error };
+  }
+};
+
 export const getFollowersByUserId = async (req, res) => {
   const { token } = req.headers;
   const user_id = await getUserIdByToken(token);
@@ -63,73 +114,43 @@ export const getFollowersByUserId = async (req, res) => {
   }
 };
 
-export const getFolloweesByUserId = async (req, res) => {
-  try {
-    const { token } = req.headers;
-    const user_id = await getUserIdByToken(token);
-    const { user_id: follower_id } = req.query;
-    if (follower_id && user_id) {
-      const isFollow = isFollowing(follower_id, user_id);
-      if (isFollow || follower_id === user_id) {
-        const users = await Follow.aggregate([
-          { $match: { follower_id, request: false } },
-          {
-            $project: {
-              followee_id: {
-                $toObjectId: "$followee_id",
-              },
-            },
-          },
-          {
-            $lookup: {
-              from: "users",
-              localField: "followee_id",
-              foreignField: "_id",
-              as: "user",
-            },
-          },
-          {
-            $unwind: "$user",
-          },
-        ]).exec();
-        const r = users.map((val) => {
-          const { _id, username, email, bio } = val.user;
-          return {
-            _id,
-            username,
-            email,
-            bio,
-          };
-        });
-        res.status(200).json(r);
-      } else {
-        res.status(400).json({
-          error: "You are not following this user",
-        });
-      }
-    } else {
-      res.status(400).json({ error: "Missing fields" });
-    }
-  } catch (error) {
-    res.status(400).json({ error, message: "error" });
+export const getfolloweesByUserId = async (req, res) => {
+  const { token } = req.headers;
+  const { user_id: follower_id } = req.query;
+  const followees = await followeesByUserId(follower_id, token);
+  if (followees.error) {
+    res.status(400).json({ error: followees.error });
+  } else {
+    res.status(200).json(followees);
   }
 };
 
 export const getAmountFollowersByUserId = async (user_id) => {
-  const followers = await Follow.find({ followee_id: user_id, request: false });
-  return followers.length;
+  try {
+    const followers = await Follow.countDocuments({
+      followee_id: user_id,
+      request: false,
+    });
+    return followers;
+  } catch (error) {
+    return undefined;
+  }
 };
 
 export const getAmountFolloweesByUserId = async (user_id) => {
-  const followers = await Follow.find({ follower_id: user_id, request: false });
-  return followers.length;
+  try {
+  const followers = await Follow.countDocuments({ follower_id: user_id, request: false });
+  return followers;
+  } catch (error) {
+    return undefined;
+  }
 };
 
 export const create = async (req, res) => {
   try {
     const { user_id: followee_id } = req.body;
     const { token } = req.headers;
-    const follower_id = await await getUserIdByToken(token);
+    const follower_id = await getUserIdByToken(token);
     if (followee_id && follower_id) {
       const isFollow = await Follow.findOne({
         followee_id,
@@ -163,14 +184,14 @@ export const create = async (req, res) => {
 export const response = async (req, res) => {
   const { request_id, action } = req.body;
   const { token } = req.headers;
-  const follower_id = await await getUserIdByToken(token);
+  const followee_id = await getUserIdByToken(token);
   try {
     const follow = await Follow.findOne({
       _id: request_id,
       request: true,
     });
     if (follow) {
-      if (follow.follower_id.toString() === follower_id) {
+      if (follow.followee_id.toString() === followee_id) {
         if (action === "accept") {
           follow.request = false;
           await follow.save();

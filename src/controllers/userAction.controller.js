@@ -1,5 +1,9 @@
 import UserAction from "../models/userAction.model.js";
-import { getUserByToken } from "./user.controller.js";
+import {
+  getUserByToken,
+  getUserIdByToken,
+  getUserById,
+} from "./user.controller.js";
 
 const createAction = async (req, res, type) => {
   const { token } = req.headers;
@@ -58,6 +62,7 @@ const getAction = async (id, type) => {
             post_id: {
               $toObjectId: "$post_id",
             },
+            _id: 1,
           },
         },
         {
@@ -65,12 +70,17 @@ const getAction = async (id, type) => {
             from: "posts",
             localField: "post_id",
             foreignField: "_id",
-            as: "posts",
+            as: "post",
           },
         },
-        { $project: { _id: 0, posts: 1 } },
+        {
+          $unwind: "$post",
+        },
       ]).exec();
-      return { value: posts[0].posts };
+      const r = posts.map((val) => {
+        return val.post;
+      });
+      return { value: r };
     } else {
       return { error: "Missing fields" };
     }
@@ -140,23 +150,39 @@ export const save = async (req, res) => {
 };
 
 export const getSavedPosts = async (req, res) => {
-  const { user_id } = req.query;
-  const posts = await getAction(user_id, "save");
-  if (posts.error) {
-    res.status(400).json(posts);
+  const { token } = req.headers;
+  const user_id = await getUserIdByToken(token);
+  const { user_id: id } = req.query;
+  if (id === user_id) {
+    const posts = await getAction(id, "save");
+    if (posts.error) {
+      res.status(400).json(posts);
+    } else {
+      res.status(200).json(posts.value);
+    }
   } else {
-    res.status(200).json(posts.value);
+    res.status(400).json({ error: "Fail" });
   }
 };
 
 export const getLikedPosts = async (req, res) => {
-  console.log("getLikedPosts");
-  const { user_id } = req.query;
-  const posts = await getAction(user_id, "like");
-  if (posts.error) {
-    res.status(400).json(posts);
-  } else {
-    res.status(200).json(posts.value);
+  try {
+    const { token } = req.headers;
+    const user_id = await getUserIdByToken(token);
+    const { user_id: id } = req.query;
+    const user = await getUserById(id);
+    if (user) {
+      if (user.showLikes || user_id === id) {
+        const posts = await getAction(id, "like");
+        if (posts.error) {
+          res.status(400).json(posts);
+        } else {
+          res.status(200).json(posts.value);
+        }
+      }
+    }
+  } catch (error) {
+    res.status(400).json({ error, message: "error" });
   }
 };
 
