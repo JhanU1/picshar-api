@@ -9,6 +9,7 @@ const userSchema = new Schema({
   birthdate: { type: Date, required: true },
   bio: { type: String, required: true },
   token: { type: String},
+  showLikes: { type: Boolean, default: true },
 });
 
 export default model("User", userSchema);

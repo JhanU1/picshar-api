@@ -1,6 +1,31 @@
 import User from "../models/user.model.js";
+import { getAmountAction } from "./userAction.controller.js";
+import { getAmountPosts } from "./post.controller.js";
+import {
+  getAmountFollowersByUserId,
+  getAmountFolloweesByUserId,
+} from "./follow.controller.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+
+export const getUserByToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+    const user = await User.findOne({ _id: decoded.user_id });
+    return user;
+  } catch (error) {
+    return undefined;
+  }
+};
+
+export const getUserById = async (user_id) => {
+  try {
+    const user = await User.findOne({ _id: user_id });
+    return user;
+  } catch (error) {
+    return undefined;
+  }
+};
 
 export const create = async (req, res) => {
   try {
@@ -31,10 +56,10 @@ export const create = async (req, res) => {
       await newuser.save();
       res.json({ token });
     } else {
-      res.json({ error: "Missing fields" });
+      res.status(400).json({ error: "Missing fields" });
     }
   } catch (error) {
-    res.json({ error, message: "User not created" });
+    res.status(400).json({ error, message: "User not created" });
   }
 };
 
@@ -50,28 +75,26 @@ const loginCredentials = async (req, res) => {
         await user.save();
         res.json({ token });
       } else {
-        res.json({ error: "Invalid credentials" });
+        res.status(400).json({ error: "Invalid credentials" });
       }
     } else {
-      res.json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid credentials" });
     }
   } catch (error) {
-    res.json({ error, message: "User not logged in" });
+    res.status(400).json({ error, message: "User not logged in" });
   }
 };
 
 const loginToken = async (req, res) => {
   try {
-    const { token } = req.body;
-    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
-    const user = await User.findOne({ _id: decoded.user_id });
+    const user = await getUserByToken(req.body.token);
     if (user) {
       res.json({});
     } else {
-      res.json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid Token" });
     }
   } catch (error) {
-    res.json({ error, message: "User not logged in" });
+    res.status(400).json({ error, message: "User not logged in" });
   }
 };
 
@@ -89,24 +112,24 @@ const getUser = async (req, res) => {
     const user = await User.findOne({ _id: user_id });
     if (user) {
       const { username, email, bio } = user;
-      // TODO: calculate liked_count, posts_count, followers_count, followed_count
-      let [liked_count, posts_count, followers_count, followed_count] = [
-        0, 0, 0, 0,
-      ];
+      const liked_count = await getAmountAction(user_id, "like");
+      const posts_count = await getAmountPosts(user_id);
+      const followers_count = await getAmountFollowersByUserId(user_id);
+      const followed_count = await getAmountFolloweesByUserId(user_id);
       res.json({
         username,
         email,
         bio,
-        liked_count,
+        liked_count: liked_count.value,
         posts_count,
         followers_count,
         followed_count,
       });
     } else {
-      res.json({ error: "User not found" });
+      res.status(400).json({ error: "User not found" });
     }
   } catch (error) {
-    res.json({ error, message: "User not found" });
+    res.status(400).json({ error, message: "User not found" });
   }
 };
 
@@ -126,10 +149,18 @@ const getAllUsers = async (_req, res) => {
 };
 
 export const get = async (req, res) => {
-  console.log("Entered get");
   if (req.query.user_id) {
     getUser(req, res);
   } else {
     getAllUsers(req, res);
+  }
+};
+
+export const getUserIdByToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+    return decoded.user_id;
+  } catch (error) {
+    return undefined;
   }
 };
