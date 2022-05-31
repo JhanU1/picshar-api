@@ -56,10 +56,10 @@ export const create = async (req, res) => {
       await newuser.save();
       res.json({ token });
     } else {
-      res.json({ error: "Missing fields" });
+      res.status(400).json({ error: "Missing fields" });
     }
   } catch (error) {
-    res.json({ error, message: "User not created" });
+    res.status(400).json({ error, message: "User not created" });
   }
 };
 
@@ -75,26 +75,26 @@ const loginCredentials = async (req, res) => {
         await user.save();
         res.json({ token });
       } else {
-        res.json({ error: "Invalid credentials" });
+        res.status(400).json({ error: "Invalid credentials" });
       }
     } else {
-      res.json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid credentials" });
     }
   } catch (error) {
-    res.json({ error, message: "User not logged in" });
+    res.status(400).json({ error, message: "User not logged in" });
   }
 };
 
 const loginToken = async (req, res) => {
   try {
-    const user = await getUserByToken(req.query.token);
+    const user = await getUserByToken(req.body.token);
     if (user) {
       res.json({});
     } else {
-      res.json({ error: "Invalid credentials" });
+      res.status(400).json({ error: "Invalid Token" });
     }
   } catch (error) {
-    res.json({ error, message: "User not logged in" });
+    res.status(400).json({ error, message: "User not logged in" });
   }
 };
 
@@ -120,16 +120,16 @@ const getUser = async (req, res) => {
         username,
         email,
         bio,
-        liked_count,
+        liked_count: liked_count.value,
         posts_count,
         followers_count,
         followed_count,
       });
     } else {
-      res.json({ error: "User not found" });
+      res.status(400).json({ error: "User not found" });
     }
   } catch (error) {
-    res.json({ error, message: "User not found" });
+    res.status(400).json({ error, message: "User not found" });
   }
 };
 
@@ -149,7 +149,6 @@ const getAllUsers = async (_req, res) => {
 };
 
 export const get = async (req, res) => {
-  console.log("Entered get");
   if (req.query.user_id) {
     getUser(req, res);
   } else {

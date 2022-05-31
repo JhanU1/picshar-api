@@ -16,10 +16,11 @@ export const isFollowing = async (followee_id, follower_id) => {
 
 export const followeesByUserId = async (follower_id, token) => {
   try {
+    console.log("token",token)
     const user_id = await getUserIdByToken(token);
-
+    console.log(user_id, follower_id);
     if (follower_id && user_id) {
-      const isFollow =await  isFollowing(follower_id, user_id);
+      const isFollow = await isFollowing(follower_id, user_id);
       if (isFollow || follower_id === user_id) {
         const users = await Follow.aggregate([
           { $match: { follower_id, request: false } },
@@ -69,6 +70,7 @@ export const getFollowersByUserId = async (req, res) => {
   const { token } = req.headers;
   const user_id = await getUserIdByToken(token);
   const { user_id: followee_id } = req.query;
+  console.log(followee_id, user_id);
 
   if (followee_id && user_id) {
     const isFollow = await isFollowing(followee_id, user_id);
@@ -114,7 +116,7 @@ export const getFollowersByUserId = async (req, res) => {
   }
 };
 
-export const getfolloweesByUserId = async (req, res) => {
+export const getFolloweesByUserId = async (req, res) => {
   const { token } = req.headers;
   const { user_id: follower_id } = req.query;
   const followees = await followeesByUserId(follower_id, token);
@@ -139,8 +141,11 @@ export const getAmountFollowersByUserId = async (user_id) => {
 
 export const getAmountFolloweesByUserId = async (user_id) => {
   try {
-  const followers = await Follow.countDocuments({ follower_id: user_id, request: false });
-  return followers;
+    const followers = await Follow.countDocuments({
+      follower_id: user_id,
+      request: false,
+    });
+    return followers;
   } catch (error) {
     return undefined;
   }
@@ -196,17 +201,21 @@ export const response = async (req, res) => {
           follow.request = false;
           await follow.save();
           res.json({});
-        } else {
+        } else if (action === "reject") {
           await follow.remove();
           res.json({});
+        } else {
+          res.status(400).json({
+            error: "Invalid action",
+          });
         }
       } else {
-        res.json({ error: "Not your request" });
+        res.status(400).json({ error: "Not your request" });
       }
     } else {
-      res.json({ error: "Follow request not found" });
+      res.status(400).json({ error: "Follow request not found" });
     }
   } catch (error) {
-    res.json({ error, message: "Follow request not found" });
+    res.status(400).json({ error, message: "Follow request not found" });
   }
 };

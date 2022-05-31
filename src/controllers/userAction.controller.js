@@ -10,9 +10,10 @@ const createAction = async (req, res, type) => {
   const user = await getUserByToken(token);
   if (user) {
     const user_id = user._id;
+    const { post_id } = req.body;
     if (type === "comment") {
       try {
-        const { post_id, comment } = req.body;
+        const { comment } = req.body;
         if (post_id && comment) {
           const newAction = new UserAction({
             user_id,
@@ -28,27 +29,37 @@ const createAction = async (req, res, type) => {
           });
         }
       } catch (error) {
-        res.json({ error, message: "error" });
+        res.status(400).json({ error, message: "error" });
       }
     } else {
       try {
-        const { post_id } = req.body;
         if (post_id) {
-          await UserAction.create({
-            type,
+          const userAction = await UserAction.findOne({
             user_id,
             post_id,
+            type,
           });
-          res.json({});
+          if (userAction) {
+            res.status(400).json({
+              message: `You already ${type}d this post`,
+            });
+          } else {
+            await UserAction.create({
+              type,
+              user_id,
+              post_id,
+            });
+            res.json({});
+          }
         } else {
-          res.json({ error: "Missing fields" });
+          res.status(400).json({ error: "Missing fields" });
         }
       } catch (error) {
-        res.json({ error, message: "error" });
+        res.status(400).json({ error, message: "error" });
       }
     }
   } else {
-    res.json({ error: "User not found" });
+    res.status(400).json({ error: "User not found" });
   }
 };
 
@@ -92,11 +103,11 @@ const getAction = async (id, type) => {
 export const getAmountAction = async (id, type, isUser = true) => {
   try {
     if (isUser) {
-      if (user_id) {
+      if (id) {
         const amount = await UserAction.countDocuments({
           user_id: id,
           type,
-        }).exec();
+        });
         return { value: amount };
       } else {
         return { error: "Missing fields" };

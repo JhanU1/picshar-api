@@ -2,13 +2,12 @@ import Post from "../models/post.model.js";
 import {
   getCommentsByPostId,
   getAmountAction,
-  followeesByUserId,
 } from "./userAction.controller.js";
-import { getfolloweesByUserId, isFollowing } from "./follow.controller.js";
+import { followeesByUserId, isFollowing } from "./follow.controller.js";
 import { getUserIdByToken } from "./user.controller.js";
 
-export const getAmountPosts = async (user_id) => {
-  const amount = await Post.countDocuments({ user_id });
+export const getAmountPosts = async (author) => {
+  const amount = await Post.countDocuments({ author });
   return amount;
 };
 
@@ -23,10 +22,10 @@ export const create = async (req, res) => {
       });
       res.json({});
     } else {
-      res.json({ error: "Missing fields" });
+      res.status(400).json({ error: "Missing fields" });
     }
   } catch (error) {
-    res.json({ error, message: "Post not created" });
+    res.status(400).json({ error, message: "Post not created" });
   }
 };
 
@@ -40,10 +39,10 @@ const getByAuthor = async (req, res) => {
       const posts = await Post.find({ author });
       res.json({ posts });
     } else {
-      res.json({ error: "You are not following this author" });
+      res.status(400).json({ error: "You are not following this author" });
     }
   } catch (error) {
-    res.json({ error, message: "Posts not found" });
+    res.status(400).json({ error, message: "Posts not found" });
   }
 };
 
@@ -54,12 +53,22 @@ const getByPostId = async (req, res) => {
     if (post) {
       const comments = await getCommentsByPostId(post_id);
       const likes = await getAmountAction(post_id, "like", false);
-      res.json({ ...post, likes, comments });
+      if (comments.error || likes.error) {
+        res.status(400).json({
+          error: comments.error || likes.error,
+        });
+      } else {
+        res.status(200).json({
+          ...post._doc,
+          likes: likes.value,
+          comments: comments.value,
+        });
+      }
     } else {
-      res.json({ error: "Post not found" });
+      res.status(400).json({ error: "Post not found" });
     }
   } catch (error) {
-    res.json({ error, message: "Post not found" });
+    res.status(400).json({ error, message: "Post not found" });
   }
 };
 
@@ -73,22 +82,21 @@ export const get = async (req, res) => {
 };
 
 export const getTimeLine = async (req, res) => {
-  try {
-    let { user_id, page } = req.query;
-    const followees = await getfolloweesByUserId(user_id);
-    page_size = 10;
-    if (followees.error) {
-      res.json({ error: followees.error });
-    } else {
-      if (!page) {
-        page = 1;
-      }
-      const posts = await Post.find({ author: { $in: followees } })
-        .skip(page_size * page)
-        .limit(page_size);
-      res.json({ posts });
+  let { page } = req.query;
+  const { token } = req.headers;
+  const user_id = await getUserIdByToken(token);
+  const followees = await followeesByUserId(user_id, token);
+  const followeesIds = followees.map((followee) => followee._id.toString());
+  const page_size = 10;
+  if (followees.error) {
+    res.status(400).json({ error: followees.error });
+  } else {
+    if (!page) {
+      page = 0;
     }
-  } catch (error) {
-    res.json({ error, message: "Invalid Request" });
+    const posts = await Post.find({ author: { $in: followeesIds } })
+      .skip(page_size * (page - 1))
+      .limit(page_size);
+    res.json({ posts });
   }
 };
