@@ -41,6 +41,28 @@ describe('Users routes', () => {
     });
   });
 
+  describe('POST /login', () => {
+    let token;
+
+    it('Should login user with credentials', async () => {
+      const response = await request(app).post(`${USERS_PATH}/login`).send({
+        username: NEW_USER.username,
+        password: NEW_USER.password
+      });
+      expect(response.statusCode).toBe(200);
+      expect(token = response.body.token).toBeDefined();
+    });
+
+    it('Should login user with token', async () => {
+      const response = await request(app).post(`${USERS_PATH}/login`).send({ token });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toEqual({});
+    });
+
+  });
+
+
+
   // it('Should return all users', async () => {
   //   const response = await request(app).get(USERS_PATH);
   //   expect(response.statusCode).toBe(200);
