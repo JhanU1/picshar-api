@@ -26,13 +26,16 @@ app.use("/posts", postsRouter);
 app.use("/follows", followRouter);
 app.use("/", indexRouter);
 
-// Connect database
-connect();
+// Avoid connecting to db when testing
+if (process.env.NODE_ENV !== "test") {
+  // Connect database
+  connect();
 
-// Disconnect database connection on server stop
-process.on("SIGINT", async () => {
-  await disconnect();
-  process.exit(0);
-});
+  // Disconnect database connection on server stop
+  process.on("SIGINT", async () => {
+    await disconnect();
+    process.exit(0);
+  });
+}
 
 export default app;
