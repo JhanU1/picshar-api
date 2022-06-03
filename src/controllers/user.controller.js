@@ -75,7 +75,7 @@ const loginCredentials = async (req, res) => {
         await user.save();
         res.json({ token });
       } else {
-        res.status(400).json({ error: "Invalid credentials" });
+        res.status(400).json({ error: "Invalid password" });
       }
     } else {
       res.status(400).json({ error: "Invalid credentials" });
