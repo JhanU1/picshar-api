@@ -16,9 +16,7 @@ export const isFollowing = async (followee_id, follower_id) => {
 
 export const followeesByUserId = async (follower_id, token) => {
   try {
-    console.log("token",token)
     const user_id = await getUserIdByToken(token);
-    console.log(user_id, follower_id);
     if (follower_id && user_id) {
       const isFollow = await isFollowing(follower_id, user_id);
       if (isFollow || follower_id === user_id) {
@@ -70,7 +68,6 @@ export const getFollowersByUserId = async (req, res) => {
   const { token } = req.headers;
   const user_id = await getUserIdByToken(token);
   const { user_id: followee_id } = req.query;
-  console.log(followee_id, user_id);
 
   if (followee_id && user_id) {
     const isFollow = await isFollowing(followee_id, user_id);
