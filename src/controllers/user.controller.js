@@ -35,7 +35,7 @@ export const create = async (req, res) => {
       const userE = await User.findOne({ email });
       if (userU || userE) {
         return res.status(400).json({
-          message: "Username already exists",
+          message: "User already exists",
         });
       }
       const salt = await bcrypt.genSalt(10);
@@ -54,7 +54,7 @@ export const create = async (req, res) => {
       );
       newuser.token = token;
       await newuser.save();
-      res.json({ token });
+      res.status(201).json({ token });
     } else {
       res.status(400).json({ error: "Missing fields" });
     }
@@ -75,7 +75,7 @@ const loginCredentials = async (req, res) => {
         await user.save();
         res.json({ token });
       } else {
-        res.status(400).json({ error: "Invalid credentials" });
+        res.status(400).json({ error: "Invalid password" });
       }
     } else {
       res.status(400).json({ error: "Invalid credentials" });
