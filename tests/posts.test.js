@@ -8,11 +8,11 @@ import Post from '../src/models/post.model.js';
 const POSTS_PATH = '/posts';
 
 const NEW_USER = {
-  username: 'test',
+  username: 'test from posts',
   password: 'password',
-  email: 'test@example.com',
+  email: 'testfromposts@example.com',
   birthdate: '2000-01-01',
-  bio: 'I am a test user'
+  bio: 'I am a test user from posts'
 };
 
 
