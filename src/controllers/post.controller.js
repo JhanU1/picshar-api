@@ -32,9 +32,9 @@ export const create = async (req, res) => {
 const getByAuthor = async (req, res) => {
   try {
     const { token } = req.headers;
-    const user_id = await getUserIdByToken(token);
-    const isFollow = await isFollowing(user_id, req.params.author);
     const { author } = req.query;
+    const user_id = await getUserIdByToken(token);
+    const isFollow = await isFollowing(user_id, author);
     if (author === user_id || isFollow) {
       const posts = await Post.find({ author });
       res.json({ posts });
